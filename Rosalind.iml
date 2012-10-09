@@ -24,7 +24,6 @@
     <orderEntry type="library" name="Maven: org.scala-lang:scala-library:2.9.2" level="project" />
     <orderEntry type="library" scope="TEST" name="Maven: org.scalatest:scalatest_2.9.2:1.7.1" level="project" />
     <orderEntry type="library" scope="TEST" name="Maven: junit:junit:4.10" level="project" />
-    <orderEntry type="library" scope="TEST" name="Maven: org.hamcrest:hamcrest-core:1.1" level="project" />
   </component>
 </module>
 
