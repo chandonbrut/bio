@@ -8,7 +8,33 @@ package br.mil.eb.ime.rosalind.algo
  * To change this template use File | Settings | File Templates.
  */
 object RNATranslator {
-  def translateBase(baseTriple:String) : String =
+
+  def translateProtein(proteinBase:String) : List[String] =
+    proteinBase match {
+      case "A" => List("GCA", "GCC", "GCG", "GCU")
+      case "C" => List("UGC", "UGU")
+      case "D" => List("GAC", "GAU")
+      case "E" => List("GAA", "GAG")
+      case "F" => List("UUC", "UUU")
+      case "G" => List("GGA", "GGC", "GGG", "GGU")
+      case "H" => List("CAC", "CAU")
+      case "I" => List("AUA", "AUC", "AUU")
+      case "K" => List("AAA", "AAG")
+      case "L" => List("CUA", "CUC", "CUG", "CUU", "UUA", "UUG")
+      case "M" => List("AUG")
+      case "N" => List("AAC", "AAU")
+      case "P" => List("CCA", "CCC", "CCG", "CCU")
+      case "Q" => List("CAA", "CAG")
+      case "R" => List("AGA", "AGG", "CGA", "CGC", "CGG", "CGU")
+      case "S" => List("AGC", "AGU", "UCA", "UCC", "UCG", "UCU")
+      case "T" => List("ACA", "ACC", "ACG", "ACU")
+      case "V" => List("GUA", "GUC", "GUG", "GUU")
+      case "W" => List("UGG")
+      case "Y" => List("UAC", "UAU")
+      case _ => List("UAA", "UAG", "UGA") // case "Stop" => List("UAA", "UAG", "UGA")
+    }
+
+  def translateCodom(baseTriple:String) : String =
     baseTriple match {
       case "AAA" => "K"
       case "AAC" => "N"
@@ -58,15 +84,15 @@ object RNATranslator {
       case "GUC" => "V"
       case "GUG" => "V"
       case "GUU" => "V"
-      case "UAA" => ""//"Stop"
+      case "UAA" => "#"//"Stop"
       case "UAC" => "Y"
-      case "UAG" => ""//"Stop"
+      case "UAG" => "#"//"Stop"
       case "UAU" => "Y"
       case "UCA" => "S"
       case "UCC" => "S"
       case "UCG" => "S"
       case "UCU" => "S"
-      case "UGA" => ""//"Stop"
+      case "UGA" => "#"//"Stop"
       case "UGC" => "C"
       case "UGG" => "W"
       case "UGU" => "C"
@@ -74,11 +100,12 @@ object RNATranslator {
       case "UUC" => "F"
       case "UUG" => "L"
       case "UUU" => "F"
+      case _ => "#"
     }
   def codeProtein(rna:String) : String = {
     val triplets = rna.sliding(3,3).toList
     val protein = for (rnaBase <- triplets)
-      yield translateBase(rnaBase)
+      yield translateCodom(rnaBase)
     return protein.mkString
   }
 }

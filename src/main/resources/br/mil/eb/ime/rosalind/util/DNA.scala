@@ -1,5 +1,7 @@
 package br.mil.eb.ime.rosalind.util
 
+import br.mil.eb.ime.rosalind.algo.{ProteinCutter, DNATranslator}
+
 /**
  * Created with IntelliJ IDEA.
  * User: jonas
@@ -13,6 +15,7 @@ case class DNA(name:String, sequence:String) {
   private var cytosine : Int = 0
   private var guanine : Int = 0
   private var thymine : Int = 0
+  private val startCodom = "ATG"
 
   for (c <- sequence.toCharArray)
   c match {
@@ -36,7 +39,68 @@ case class DNA(name:String, sequence:String) {
 
     if (mySuffix.equals(otherPrefix)) return true;
     return false;
-
   }
 
+  def produceRNA() : RNA = {
+    val mRNA = {
+      for (base <- this.sequence.toCharArray)
+        yield base.toString match {
+          case "A" => "A"
+          case "C" => "C"
+          case "G" => "G"
+          case "T" => "U"
+      }
+    }.toList.mkString
+    return new RNA(this.name,mRNA)
+  }
+
+  def codeProtein : String = {
+    // first, we have to get rid of dump DNA
+    val dna = this.sequence
+    val startCodomIndex = this.sequence.indexOf(this.startCodom)
+    val remaining = this.sequence.substring(startCodomIndex)
+
+    val triplets = remaining.sliding(3,3).toList
+    val protein = for (dnaBase <- triplets)
+    yield DNATranslator.translateCodom(dnaBase)
+
+    return protein.mkString
+  }
+
+  def reverseComplement : DNA = {
+      val complementDNA = {
+        for (base <- this.sequence.reverse.toCharArray)
+        yield base.toString match {
+          case "A" => "T"
+          case "C" => "G"
+          case "G" => "C"
+          case "T" => "A"
+        }
+      }.toList.mkString
+      return new DNA(this.name,complementDNA)
+    }
+
+  def possibleCoders : List[String] = {
+    val remaining = this.sequence
+    val complementRemaining = this.reverseComplement.sequence
+
+    val offsetByZero = remaining.sliding(3,3).toList.mkString
+    val offsetByOne = remaining.substring(1).sliding(3,3).toList.mkString
+    val offsetByTwo = remaining.substring(2).sliding(3,3).toList.mkString
+
+
+    val complementOffsetByZero = complementRemaining.sliding(3,3).toList.mkString
+
+    val complementOffsetByOne = complementRemaining.substring(1).sliding(3,3).toList.mkString
+    val complementOffsetByTwo = complementRemaining.substring(2).sliding(3,3).toList.mkString
+
+    return {
+        ProteinCutter.cut(DNATranslator.codeProtein(offsetByZero)) :::
+        ProteinCutter.cut(DNATranslator.codeProtein(offsetByOne)) :::
+        ProteinCutter.cut(DNATranslator.codeProtein(offsetByTwo)) :::
+        ProteinCutter.cut(DNATranslator.codeProtein(complementOffsetByZero)) :::
+        ProteinCutter.cut(DNATranslator.codeProtein(complementOffsetByOne)) :::
+        ProteinCutter.cut(DNATranslator.codeProtein(complementOffsetByTwo))
+    }
+  }
 }
