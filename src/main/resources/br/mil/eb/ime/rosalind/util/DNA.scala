@@ -95,12 +95,12 @@ case class DNA(name:String, sequence:String) {
     val complementOffsetByTwo = complementRemaining.substring(2).sliding(3,3).toList.mkString
 
     return {
-        ProteinCutter.cut(DNATranslator.codeProtein(offsetByZero)) :::
-        ProteinCutter.cut(DNATranslator.codeProtein(offsetByOne)) :::
-        ProteinCutter.cut(DNATranslator.codeProtein(offsetByTwo)) :::
-        ProteinCutter.cut(DNATranslator.codeProtein(complementOffsetByZero)) :::
-        ProteinCutter.cut(DNATranslator.codeProtein(complementOffsetByOne)) :::
-        ProteinCutter.cut(DNATranslator.codeProtein(complementOffsetByTwo))
+        ProteinUtil.cut(DNATranslator.codeProtein(offsetByZero)) :::
+        ProteinUtil.cut(DNATranslator.codeProtein(offsetByOne)) :::
+        ProteinUtil.cut(DNATranslator.codeProtein(offsetByTwo)) :::
+        ProteinUtil.cut(DNATranslator.codeProtein(complementOffsetByZero)) :::
+        ProteinUtil.cut(DNATranslator.codeProtein(complementOffsetByOne)) :::
+        ProteinUtil.cut(DNATranslator.codeProtein(complementOffsetByTwo))
     }
   }
 }
