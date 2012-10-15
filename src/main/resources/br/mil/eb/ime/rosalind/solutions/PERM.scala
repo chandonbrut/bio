@@ -10,7 +10,7 @@ import br.mil.eb.ime.rosalind.algo.RNATranslator
  * To change this template use File | Settings | File Templates.
  */
 object PERM extends App {
-  val i=6
+  val i=10
   val intList = List.range(1,i+1).permutations.toList
   println(intList.size)
   for (l<-intList)
