@@ -1,6 +1,6 @@
 package br.mil.eb.ime.rosalind.util
 
-import br.mil.eb.ime.rosalind.algo.{ProteinCutter, DNATranslator}
+import br.mil.eb.ime.rosalind.algo.{DNATranslator}
 
 /**
  * Created with IntelliJ IDEA.
