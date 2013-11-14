@@ -15,7 +15,5 @@ object SUBS extends App {
   val motif="ATATCCGAT"
   val indexes = MotifFinder.findMotif(motif,sequence)
 
-
-
   println(indexes.mkString(" "))
 }

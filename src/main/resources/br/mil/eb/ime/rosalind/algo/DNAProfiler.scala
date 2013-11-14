@@ -1,5 +1,7 @@
 package br.mil.eb.ime.rosalind.algo
 import scala.collection.mutable
+import br.mil.eb.ime.rosalind.util.DNA
+
 /**
  * Created with IntelliJ IDEA.
  * User: jonas
@@ -37,6 +39,92 @@ object DNAProfiler {
   def profile(sequences : List[String]) : List[(Int,Int,Int,Int)] = {
     for (sequence <- sequences)
       yield profileSequence(sequence)
+  }
+
+
+  def countKMersWithReverseComplement(k : Int, sequence : String, tolerance : Int) : mutable.Map[String,Int] = {
+
+    val kMers = sequence.sliding(k)
+    val possibleKmers = generate(k)
+    val allComplements = (for (possible <- possibleKmers) yield  (new DNA("unn",possible)).reverseComplement.sequence).toList
+
+    val possibleAndComplement = possibleKmers zip allComplements
+
+    val count = new mutable.HashMap[String,Int]
+
+    for (k1 <- kMers; k2 <- possibleKmers)
+      if ((Hamming.calculate(k1,k2) <= tolerance)) {
+        if (count.get(k2) == None) {
+          count.put(k2,1)
+        } else {
+          var c:Int = count.get(k2).get
+          count.put(k2,(c+1))
+        }
+      }
+
+
+    for (pc <- possibleAndComplement) {
+      val v1 = count.get(pc._1)
+      val v2 = count.get(pc._2)
+      var vv = 0
+      if (v1 != None) {
+         vv = v1.get
+      }
+      var yy = 0
+      if (v2 != None) {
+        yy = v2.get
+      }
+      count.put(pc._1, vv + yy)
+      count.put(pc._2, vv + yy)
+
+    }
+
+
+    return count
+  }
+
+  def countKMers(k : Int, sequence : String, tolerance : Int) : mutable.Map[String,Int] = {
+    val kMers = sequence.sliding(k)
+    val possibleKmers = generate(k)
+    val count = new mutable.HashMap[String,Int]
+
+    for (k1 <- kMers; k2 <- possibleKmers)
+      if (Hamming.calculate(k1,k2) <= tolerance)
+        if (count.get(k2) == None) {
+          count.put(k2,1)
+        } else {
+          var c:Int = count.get(k2).get
+          count.put(k2,(c+1))
+        }
+    return count
+  }
+
+  def generate(k : Int) : List[String] = {
+    val possibleBases = List("A","C","G","T")
+    if (k>1) {
+      val yeah = for (prefix <- possibleBases; suffix <- generate(k-1))
+      yield prefix + suffix
+      return yeah
+    }
+    if (k == 1) {
+      return possibleBases
+    }
+    return List()
+  }
+
+  def countKMers(k : Int, sequence : String) : mutable.Map[String,Int] = {
+    val kMers = sequence.sliding(k)
+    val count = new mutable.HashMap[String,Int]
+
+    for (k <- kMers)
+      if (count.get(k) == None) {
+        count.put(k,1)
+      } else {
+        var c:Int = count.get(k).get
+        count.put(k,(c+1))
+      }
+    return count
+
   }
 
   def consensus(profile : List[(Int,Int,Int,Int)]): String = {

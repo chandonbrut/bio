@@ -1,6 +1,7 @@
 package br.mil.eb.ime.rosalind.util
 
-import br.mil.eb.ime.rosalind.algo.{DNATranslator}
+import br.mil.eb.ime.rosalind.algo.{DNAProfiler, DNATranslator}
+import scala.collection.mutable
 
 /**
  * Created with IntelliJ IDEA.
@@ -25,6 +26,8 @@ case class DNA(name:String, sequence:String) {
     case 'T' => thymine=thymine+1
     case _ =>
   }
+
+  def gminusc() : Int = return guanine - cytosine;
 
   def gcContent() : Double = return (100.0*(guanine+cytosine)) / (adenine+cytosine+guanine+thymine)
   def atgcRatio() : Double = return 1.0*(adenine+thymine)/(guanine+cytosine)
@@ -103,4 +106,26 @@ case class DNA(name:String, sequence:String) {
         ProteinUtil.cut(DNATranslator.codeProtein(complementOffsetByTwo))
     }
   }
+
+  def findKmers(k : Int, region : String) : mutable.Map[String,Int] = {
+      val kMers = region.sliding(k)
+      val count = new mutable.HashMap[String,Int]
+
+      for (k <- kMers)
+        if (count.get(k) == None) {
+          count.put(k,1)
+        } else {
+          var c:Int = count.get(k).get
+          count.put(k,(c+1))
+        }
+      return count
+   }
+
+  def findClumps(k:Int, l:Int, t:Int) : List[String] = {
+    val possibleRegions = sequence.sliding(l)
+    val km =for (region <- possibleRegions; kmer <-findKmers(k,region); if (kmer._2 >= t) )
+      yield kmer._1
+    km.toList.distinct
+  }
+
 }
