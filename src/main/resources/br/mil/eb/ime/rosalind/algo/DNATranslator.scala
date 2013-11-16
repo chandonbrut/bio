@@ -1,5 +1,7 @@
 package br.mil.eb.ime.rosalind.algo
 
+import br.mil.eb.ime.rosalind.util.DNA
+
 /**
  * Created with IntelliJ IDEA.
  * User: jonas
@@ -107,8 +109,13 @@ object DNATranslator {
       val triplets = sequence.sliding(3,3).toList
       val protein = for (dnaBase <- triplets)
       yield translateCodom(dnaBase)
-      return protein.mkString
+      val prt = protein.mkString
+      return prt.split("$").head
     }
 
+    def revCodeProtein(sequence : String) : String = {
+      val reverse = new DNA("unn",sequence).reverseComplement.sequence
+      return codeProtein(reverse)
+    }
 
 }

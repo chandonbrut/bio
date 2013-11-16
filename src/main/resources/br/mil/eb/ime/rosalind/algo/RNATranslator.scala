@@ -106,6 +106,12 @@ object RNATranslator {
     val triplets = rna.sliding(3,3).toList
     val protein = for (rnaBase <- triplets)
       yield translateCodom(rnaBase)
-    return protein.mkString
+    val prt =  protein.mkString
+    val proteins = prt.split('#')
+    if (proteins.size > 0) {
+      return proteins.head
+    } else {
+      return ""
+    }
   }
 }
