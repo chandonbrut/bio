@@ -25,4 +25,33 @@ object ProteinUtil {
     for (s<-subjects; i<-List.range(0,s.size) if s.substring(i).startsWith("M"))
       yield s.substring(i)
   }
+
+  def intWeight(protein : String) : Int = {
+    val weight = {
+      for (amino <- protein.toCharArray)
+      yield amino.toString match {
+        case "G" => 57
+        case "A" => 71
+        case "S" => 87
+        case "P" => 97
+        case "V" => 99
+        case "T" => 101
+        case "C" => 103
+        case "I" => 113
+        case "L" => 113
+        case "N" => 114
+        case "D" => 115
+        case "K" => 128
+        case "Q" => 128
+        case "E" => 129
+        case "M" => 131
+        case "H" => 137
+        case "F" => 147
+        case "R" => 156
+        case "Y" => 163
+        case "W" => 186
+      }
+    }.toList.sum
+    return weight
+  }
 }

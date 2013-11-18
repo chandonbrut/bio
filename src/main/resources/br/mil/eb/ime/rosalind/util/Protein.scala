@@ -34,4 +34,5 @@ case class Protein(name:String, sequence:String) {
         case "Y" => 163.06333
       }
     }.toList.sum
+
 }
