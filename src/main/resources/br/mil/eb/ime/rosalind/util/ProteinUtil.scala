@@ -1,5 +1,7 @@
 package br.mil.eb.ime.rosalind.util
 
+import scala.collection.mutable.ListBuffer
+
 /**
  * Created with IntelliJ IDEA.
  * User: jonas
@@ -54,4 +56,64 @@ object ProteinUtil {
     }.toList.sum
     return weight
   }
+
+  val aminoacids = List("G", "A", "S", "P", "V", "T", "C", "I", "L", "N", "D", "K", "Q", "E", "M", "H", "F", "R", "Y", "W")
+
+  def cyclopeptide(spectrum : List[Int]) : List[List[Int]] = {
+    val peptides : ListBuffer[String] = collection.mutable.ListBuffer("")
+    val result : ListBuffer[List[Int]] = collection.mutable.ListBuffer()
+    val possibleAminoAcids = aminoacids.filter(a => spectrum.contains(intWeight(a)))
+    val spec = spectrum.sorted
+
+//    peptides appendAll possibleAminoAcids
+
+    while (peptides.nonEmpty) {
+      //expand List
+      val oldpeptides = peptides.toList
+      peptides clear
+
+      for (m <- oldpeptides; n <- possibleAminoAcids; if( generateSpectrum(m+n).size == generateSpectrum(m+n).intersect(spec).size ) )
+        peptides += m+n
+
+      //foreach peptide
+      for(peptide <- peptides) {
+        val peptideSpectrum = generateSpectrum(peptide)
+
+        //peptide.spectrum = spectrum?
+        println(peptideSpectrum.sorted.intersect(spec.sorted).size + " " + peptide)
+        if (peptideSpectrum.sorted equals spec.sorted) {
+          result += generateWeights(peptide)
+          peptides remove peptides.indexOf(peptide)
+          println(peptideSpectrum.sorted.distinct.mkString("-"))
+        }
+
+      }
+    }
+    return result.toList
+  }
+
+  def generateWeights(peptide : String) : List[Int] = {
+    val l =  {for (amino <- peptide.split(""); if (aminoacids.contains(amino)))
+      yield intWeight(amino) }.toList
+
+    if (l.size != peptide.size)
+      println("erro")
+
+    return l
+  }
+
+  def generateSpectrum(peptide : String) : List[Int] = {
+    val possibleCombinations =  { for (i<-List.range(1, peptide.size); sub <- (peptide+peptide.substring(0,i-1)).sliding(i,1) )
+    yield sub }.toList
+
+    val p = for ( m <- possibleCombinations)
+    yield m.split("").toList.sorted.mkString("")
+
+
+    val ws = List(0) ::: { for (possible <- p)
+    yield ProteinUtil.intWeight(possible) }.toList ::: List(ProteinUtil.intWeight(peptide))
+
+    return ws.sorted
+  }
+
 }
