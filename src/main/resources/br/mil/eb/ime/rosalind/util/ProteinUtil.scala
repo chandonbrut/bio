@@ -72,19 +72,21 @@ object ProteinUtil {
       val oldpeptides = peptides.toList
       peptides clear
 
-      for (m <- oldpeptides; n <- possibleAminoAcids; if( generateSpectrum(m+n).size == generateSpectrum(m+n).intersect(spec).size ) )
+      // expand & trim
+      for (m <- oldpeptides; n <- possibleAminoAcids;  weights = generateWeights(m+n) ::: List(intWeight(m+n)); if (weights.size == weights.intersect(spec).size ) )
         peptides += m+n
+
+      println(oldpeptides.size + " " + result.size + " " + peptides.size)
+
 
       //foreach peptide
       for(peptide <- peptides) {
         val peptideSpectrum = generateSpectrum(peptide)
 
         //peptide.spectrum = spectrum?
-        println(peptideSpectrum.sorted.intersect(spec.sorted).size + " " + peptide)
         if (peptideSpectrum.sorted equals spec.sorted) {
           result += generateWeights(peptide)
           peptides remove peptides.indexOf(peptide)
-          println(peptideSpectrum.sorted.distinct.mkString("-"))
         }
 
       }

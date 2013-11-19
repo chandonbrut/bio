@@ -38,6 +38,7 @@ object W2L4_CYCLOPEPTIDE_SEQUENCING extends App {
   val cyclic = ProteinUtil.cyclopeptide(spectrum.toList)
   val asstrings = for (results <- cyclic.distinct) yield results.mkString("-")
 
-  println(asstrings mkString " ")
+  println(expected.distinct.sorted mkString " ")
+  println(asstrings.distinct.sorted mkString " ")
 
 }
