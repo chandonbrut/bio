@@ -65,7 +65,7 @@ object ProteinUtil {
     val possibleAminoAcids = aminoacids.filter(a => spectrum.contains(intWeight(a)))
     val spec = spectrum.sorted
 
-//    peptides appendAll possibleAminoAcids
+    peptides appendAll possibleAminoAcids
 
     while (peptides.nonEmpty) {
       //expand List
@@ -73,11 +73,12 @@ object ProteinUtil {
       peptides clear
 
       // expand & trim
-      for (m <- oldpeptides; n <- possibleAminoAcids;  weights = generateWeights(m+n) ::: List(intWeight(m+n)); if (weights.size == weights.intersect(spec).size ) )
+      for (m <- oldpeptides; n <- possibleAminoAcids;  weights = generateWeights(m+n) ::: List(intWeight(m+n)); if (weights.size == weights.intersect(spec).size ) ) {
         peptides += m+n
+      }
+
 
       println(oldpeptides.size + " " + result.size + " " + peptides.size)
-
 
       //foreach peptide
       for(peptide <- peptides) {
