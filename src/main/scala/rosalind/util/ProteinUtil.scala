@@ -58,6 +58,8 @@ object ProteinUtil {
   }
 
   val aminoacids = List("G", "A", "S", "P", "V", "T", "C", "I", "L", "N", "D", "K", "Q", "E", "M", "H", "F", "R", "Y", "W")
+  val distinctaminoacids = List("G", "A", "S", "P", "V", "T", "C", "L", "N", "D", "K", "E", "M", "H", "F", "R", "Y", "W")
+
 
   def cyclopeptide(spectrum : List[Int]) : List[List[Int]] = {
     val peptides : ListBuffer[String] = collection.mutable.ListBuffer("")
@@ -117,6 +119,70 @@ object ProteinUtil {
     yield ProteinUtil.intWeight(possible) }.toList ::: List(ProteinUtil.intWeight(peptide))
 
     return ws.sorted
+  }
+
+  def leaderBoardCyclopeptide(spectrum : List[Int], n : Int) : List[List[Int]] = {
+    val leaderboard : ListBuffer[(String,Int)] = collection.mutable.ListBuffer(("",0))
+    var leaderPeptide : String = ""
+    var leaderScore : Int = 0
+    val spec = spectrum.sorted
+    val parentMass = spec.last
+
+    while (leaderboard.nonEmpty) {
+      val old = leaderboard.toList
+      leaderboard clear
+
+      // expand
+      for (m <- old.toList ; n <- distinctaminoacids) {
+        val pep = (m._1+n,intWeight(m._1+n))
+        leaderboard += pep
+      }
+
+      // expand and update leader
+      for (m <- leaderboard.toList) {
+        val w = m._2
+        if(w == parentMass) {
+          val s = score(m._1,spec)
+          if(s > leaderScore) {
+            leaderPeptide = m._1
+            leaderScore = s
+//            println("now leader is " + leaderPeptide)
+          }
+        } else if (w > parentMass) {
+          leaderboard.remove(leaderboard indexOf (m))
+//          println("removing " + m._1)
+        }
+      }
+
+      // cut
+      val thoseWhoMadeTheCut = { for (pep <- leaderboard.toList) yield (pep._1,pep._2,score(pep._1,spec))}.toList.sortBy(a => a._3).reverse
+      if (thoseWhoMadeTheCut.size > 0) {
+        val cut = thoseWhoMadeTheCut.slice(0,n).last._3
+        val o = thoseWhoMadeTheCut.takeWhile(_._3 >= cut)
+
+        leaderboard clear
+
+        for (m <- o) {
+          val pep = (m._1,m._2)
+          leaderboard += pep
+        }
+
+
+        println("cut: " + cut + " leaders: "+ leaderboard.size)
+
+      }
+    }
+
+    val result = List(generateWeights(leaderPeptide))
+
+    return result.toList
+
+
+  }
+
+  def score(peptide : String, spectrum : List[Int]) : Int = {
+    val peptideSpectrum = generateSpectrum(peptide)
+    return peptideSpectrum.intersect(spectrum).size
   }
 
 }
