@@ -10,6 +10,9 @@ import scala.collection.mutable.ListBuffer
  * To change this template use File | Settings | File Templates.
  */
 object ProteinUtil {
+
+  val validMasses = List.range(57,200)
+
   def cut(proteinSequence : String) : List[String] = {
     val lowerStart = proteinSequence.indexOf("M")
     val upperStop = proteinSequence.lastIndexOf("$")
@@ -117,6 +120,17 @@ object ProteinUtil {
 
     val ws = List(0) ::: { for (possible <- p)
     yield ProteinUtil.intWeight(possible) }.toList ::: List(ProteinUtil.intWeight(peptide))
+
+    return ws.sorted
+  }
+
+  def generateSpectrum(peptide : List[Int]) : List[Int] = {
+    val possibleCombinations =  for (i<-List.range(1, peptide.size);
+                                     sub<-(peptide++peptide.slice(0,i-1)).sliding(i,1) )
+                                yield sub
+
+    val ws = for (possible <- possibleCombinations)
+             yield possible.sum
 
     return ws.sorted
   }
