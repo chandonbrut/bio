@@ -11,7 +11,10 @@ import scala.collection.mutable.ListBuffer
  */
 object ProteinUtil {
 
-  val validMasses = List.range(57,200)
+  val validMasses = List.range(57,200).toList
+  val aminoacids = List("G", "A", "S", "P", "V", "T", "C", "I", "L", "N", "D", "K", "Q", "E", "M", "H", "F", "R", "Y", "W")
+  val knownMasses = { for (a <- aminoacids) yield intWeight(a) }.distinct.sorted.toList
+  val distinctaminoacids = List("G", "A", "S", "P", "V", "T", "C", "L", "N", "D", "K", "E", "M", "H", "F", "R", "Y", "W")
 
   def cut(proteinSequence : String) : List[String] = {
     val lowerStart = proteinSequence.indexOf("M")
@@ -60,10 +63,40 @@ object ProteinUtil {
     return weight
   }
 
-  val aminoacids = List("G", "A", "S", "P", "V", "T", "C", "I", "L", "N", "D", "K", "Q", "E", "M", "H", "F", "R", "Y", "W")
-  val distinctaminoacids = List("G", "A", "S", "P", "V", "T", "C", "L", "N", "D", "K", "E", "M", "H", "F", "R", "Y", "W")
+  def massCyclepeptide(spectrum : List[Int]) : List[List[Int]] = {
+    val peptides : ListBuffer[List[Int]] = collection.mutable.ListBuffer()
+    val result : ListBuffer[List[Int]] = collection.mutable.ListBuffer()
+    val spec = spectrum.sorted
+    val possibleAminoAcids = knownMasses.filter(a => spec.contains(a)).distinct
+
+    for (mass <- possibleAminoAcids)
+      peptides += List(mass)
+
+    while(peptides.nonEmpty) {
+      val oldPeptides = peptides.toList
+      peptides clear
+
+      for (m<-oldPeptides; n<-possibleAminoAcids; conc = m ::: List(n); if(spec.intersect(conc ::: List(conc.sum)).size == (conc ::: List(conc.sum)).size ))
+        peptides+=conc
+
+//      println(oldPeptides.size + " " + result.size + " " + peptides.size)
+
+      for(peptide <- peptides) {
+        val peptideSpectrum = generateSpectrum(peptide)
+
+        //peptide.spectrum = spectrum?
+        if (peptideSpectrum.sorted equals spec.sorted) {
+          result += peptide
+          peptides remove peptides.indexOf(peptide)
+        }
+
+      }
+    }
+    return result.toList
+  }
 
 
+  @deprecated
   def cyclopeptide(spectrum : List[Int]) : List[List[Int]] = {
     val peptides : ListBuffer[String] = collection.mutable.ListBuffer("")
     val result : ListBuffer[List[Int]] = collection.mutable.ListBuffer()
@@ -81,9 +114,7 @@ object ProteinUtil {
       for (m <- oldpeptides; n <- possibleAminoAcids;  weights = generateWeights(m+n) ::: List(intWeight(m+n)); if (weights.size == weights.intersect(spec).size ) ) {
         peptides += m+n
       }
-
-
-      println(oldpeptides.size + " " + result.size + " " + peptides.size)
+//      println(oldpeptides.size + " " + result.size + " " + peptides.size)
 
       //foreach peptide
       for(peptide <- peptides) {
@@ -132,9 +163,62 @@ object ProteinUtil {
     val ws = for (possible <- possibleCombinations)
              yield possible.sum
 
-    return ws.sorted
+    return List(0) ::: ws.sorted ::: List(peptide.sum)
   }
 
+  def leaderBoardMassCyclopeptide(spectrum : List[Int], n : Int) : List[List[Int]] = {
+    val leaderboard : ListBuffer[(String,Int)] = collection.mutable.ListBuffer(("",0))
+    var leaderPeptide : String = ""
+    var leaderScore : Int = 0
+    val spec = spectrum.sorted
+    val parentMass = spec.last
+
+    while (leaderboard.nonEmpty) {
+      val old = leaderboard.toList
+      leaderboard clear
+
+      // expand
+      for (m <- old.toList ; n <- distinctaminoacids) {
+        val pep = (m._1+n,intWeight(m._1+n))
+        leaderboard += pep
+      }
+
+      // expand and update leader
+      for (m <- leaderboard.toList) {
+        val w = m._2
+        if(w == parentMass) {
+          val s = score(m._1,spec)
+          if(s > leaderScore) {
+            leaderPeptide = m._1
+            leaderScore = s
+            //            println("now leader is " + leaderPeptide)
+          }
+        } else if (w > parentMass) {
+          leaderboard.remove(leaderboard indexOf (m))
+          //          println("removing " + m._1)
+        }
+      }
+
+      // cut
+      val thoseWhoMadeTheCut = { for (pep <- leaderboard.toList) yield (pep._1,pep._2,score(pep._1,spec))}.toList.sortBy(a => a._3).reverse
+      if (thoseWhoMadeTheCut.size > 0) {
+        val cut = thoseWhoMadeTheCut.slice(0,n).last._3
+        val o = thoseWhoMadeTheCut.takeWhile(_._3 >= cut)
+
+        leaderboard clear
+
+        for (m <- o) {
+          val pep = (m._1,m._2)
+          leaderboard += pep
+        }
+
+
+        println("cut: " + cut + " leaders: "+ leaderboard.size)
+
+      }
+    }
+
+  @deprecated
   def leaderBoardCyclopeptide(spectrum : List[Int], n : Int) : List[List[Int]] = {
     val leaderboard : ListBuffer[(String,Int)] = collection.mutable.ListBuffer(("",0))
     var leaderPeptide : String = ""
