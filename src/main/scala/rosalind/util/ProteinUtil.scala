@@ -1,6 +1,7 @@
 package br.mil.eb.ime.rosalind.util
 
 import scala.collection.mutable.ListBuffer
+import scala.collection.mutable
 
 /**
  * Created with IntelliJ IDEA.
@@ -35,6 +36,8 @@ object ProteinUtil {
   }
 
   def intWeight(protein : String) : Int = {
+    //     99-71-137-57-72-57
+
     val weight = {
       for (amino <- protein.toCharArray)
       yield amino.toString match {
@@ -166,11 +169,42 @@ object ProteinUtil {
     return List(0) ::: ws.sorted ::: List(peptide.sum)
   }
 
-  def leaderBoardMassCyclopeptide(spectrum : List[Int], n : Int) : List[List[Int]] = {
-    val leaderboard : ListBuffer[(String,Int)] = collection.mutable.ListBuffer(("",0))
-    var leaderPeptide : String = ""
+  def convolution(spectrum : List[Int]) : List[Int] = {
+    val convolution = for (a1 <- spectrum; a2 <- spectrum; if (a2 > a1)) yield a2 - a1
+    return convolution;
+  }
+
+  def convolutionCyclopeptideSequencing(spectrum : List[Int], numberOfMostFrequent : Int, cut : Int) : List[List[Int]]= {
+      val conv = convolution(spectrum)
+      val aminoCount : mutable.HashMap[Int,Int] = new mutable.HashMap[Int,Int]()
+
+
+      for (c <- conv)
+        if(aminoCount.get(c).isDefined) {
+          aminoCount.put(c,(aminoCount.get(c).get+1))
+        } else {
+          aminoCount.put(c,1)
+        }
+
+      val ranking = aminoCount.toList.sortBy(a => a._2).reverse
+
+
+      val bestScore = ranking(numberOfMostFrequent-1)._2
+
+      val reducedSpec = for (amino <- ranking; if(amino._2 >= bestScore)) yield amino._1
+      println(reducedSpec)
+
+
+    return massLeaderBoardCyclopeptide(reducedSpec ::: List(spectrum.max), cut);
+  }
+
+  def massLeaderBoardCyclopeptide(spectrum : List[Int], n : Int) : List[List[Int]] = {
+    val leaderboard : ListBuffer[(List[Int],Int)] = collection.mutable.ListBuffer((List(),0))
+    var leaderPeptide : List[Int] = List()
     var leaderScore : Int = 0
     val spec = spectrum.sorted
+    println(spec)
+
     val parentMass = spec.last
 
     while (leaderboard.nonEmpty) {
@@ -178,8 +212,9 @@ object ProteinUtil {
       leaderboard clear
 
       // expand
-      for (m <- old.toList ; n <- distinctaminoacids) {
-        val pep = (m._1+n,intWeight(m._1+n))
+      for (m <- old.toList ; n <- spec.reverse.tail) {
+        val newList = m._1 ::: List(n)
+        val pep = (newList, newList.sum)
         leaderboard += pep
       }
 
@@ -191,11 +226,10 @@ object ProteinUtil {
           if(s > leaderScore) {
             leaderPeptide = m._1
             leaderScore = s
-            //            println("now leader is " + leaderPeptide)
+            println(s + " " + leaderPeptide)
           }
         } else if (w > parentMass) {
           leaderboard.remove(leaderboard indexOf (m))
-          //          println("removing " + m._1)
         }
       }
 
@@ -211,12 +245,12 @@ object ProteinUtil {
           val pep = (m._1,m._2)
           leaderboard += pep
         }
-
-
-        println("cut: " + cut + " leaders: "+ leaderboard.size)
-
       }
     }
+
+    val result = List(leaderPeptide)
+    return result.toList
+  }
 
   @deprecated
   def leaderBoardCyclopeptide(spectrum : List[Int], n : Int) : List[List[Int]] = {
@@ -272,13 +306,15 @@ object ProteinUtil {
     }
 
     val result = List(generateWeights(leaderPeptide))
-
     return result.toList
-
-
   }
 
   def score(peptide : String, spectrum : List[Int]) : Int = {
+    val peptideSpectrum = generateSpectrum(peptide)
+    return peptideSpectrum.intersect(spectrum).size
+  }
+
+  def score(peptide : List[Int], spectrum : List[Int]) : Int = {
     val peptideSpectrum = generateSpectrum(peptide)
     return peptideSpectrum.intersect(spectrum).size
   }

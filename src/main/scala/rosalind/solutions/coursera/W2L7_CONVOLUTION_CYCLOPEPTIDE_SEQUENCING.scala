@@ -1,5 +1,7 @@
 package rosalind.solutions.coursera
 
+import br.mil.eb.ime.rosalind.util.ProteinUtil
+
 /**
  * Created with IntelliJ IDEA.
  * User: jonas
@@ -17,6 +19,7 @@ Sample Input:
 Sample Output:
      99-71-137-57-72-57
 
+
 Input
 16
 84
@@ -25,5 +28,11 @@ Output
 147-99-114-57-129-87-71-137-87-101-129-147-57
  */
 object W2L7_CONVOLUTION_CYCLOPEPTIDE_SEQUENCING extends App {
+
+  val input = "57 57 71 99 129 137 170 186 194 208 228 265 285 299 307 323 356 364 394 422 493"
+  val spec = for (i<-input.split(" ")) yield i.toInt
+  val freq = 20
+  val cut = 60
+  println(ProteinUtil.convolutionCyclopeptideSequencing(spec.toList,freq,cut))
 
 }
