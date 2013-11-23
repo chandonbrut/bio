@@ -179,40 +179,37 @@ object ProteinUtil {
       val aminoCount : mutable.HashMap[Int,Int] = new mutable.HashMap[Int,Int]()
 
 
-      for (c <- conv)
+      for (c <- conv.filter(validMasses.contains(_)))
         if(aminoCount.get(c).isDefined) {
           aminoCount.put(c,(aminoCount.get(c).get+1))
         } else {
           aminoCount.put(c,1)
         }
 
-      val ranking = aminoCount.toList.sortBy(a => a._2).reverse
+    val ranking = aminoCount.toList.sortBy(a => a._2).reverse
+    val bestScore = ranking(numberOfMostFrequent-1)._2
 
+    val reducedSpec = for (amino <- ranking; if(amino._2 >= bestScore)) yield amino._1
 
-      val bestScore = ranking(numberOfMostFrequent-1)._2
+//    println(reducedSpec.sorted.mkString(" "))
 
-      val reducedSpec = for (amino <- ranking; if(amino._2 >= bestScore)) yield amino._1
-      println(reducedSpec)
-
-
-    return massLeaderBoardCyclopeptide(reducedSpec ::: List(spectrum.max), cut);
+    return massLeaderBoardCyclopeptide(spectrum, cut, reducedSpec.sorted);
   }
 
-  def massLeaderBoardCyclopeptide(spectrum : List[Int], n : Int) : List[List[Int]] = {
+  def massLeaderBoardCyclopeptide(spectrum : List[Int], n : Int, alphabet : List[Int]) : List[List[Int]] = {
     val leaderboard : ListBuffer[(List[Int],Int)] = collection.mutable.ListBuffer((List(),0))
     var leaderPeptide : List[Int] = List()
     var leaderScore : Int = 0
-    val spec = spectrum.sorted
-    println(spec)
+    val spec = spectrum
 
-    val parentMass = spec.last
+    val parentMass = spectrum.max
 
     while (leaderboard.nonEmpty) {
       val old = leaderboard.toList
       leaderboard clear
 
       // expand
-      for (m <- old.toList ; n <- spec.reverse.tail) {
+      for (m <- old.toList ; n <- alphabet) {
         val newList = m._1 ::: List(n)
         val pep = (newList, newList.sum)
         leaderboard += pep
@@ -224,9 +221,9 @@ object ProteinUtil {
         if(w == parentMass) {
           val s = score(m._1,spec)
           if(s > leaderScore) {
+            println(s + " " + m._1.mkString("-") + " " + w)
             leaderPeptide = m._1
             leaderScore = s
-            println(s + " " + leaderPeptide)
           }
         } else if (w > parentMass) {
           leaderboard.remove(leaderboard indexOf (m))
