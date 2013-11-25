@@ -191,8 +191,6 @@ object ProteinUtil {
 
     val reducedSpec = for (amino <- ranking; if(amino._2 >= bestScore)) yield amino._1
 
-//    println(reducedSpec.sorted.mkString(" "))
-
     return massLeaderBoardCyclopeptide(spectrum, cut, reducedSpec.sorted);
   }
 
@@ -221,7 +219,6 @@ object ProteinUtil {
         if(w == parentMass) {
           val s = score(m._1,spec)
           if(s > leaderScore) {
-            println(s + " " + m._1.mkString("-") + " " + w)
             leaderPeptide = m._1
             leaderScore = s
           }
@@ -275,11 +272,9 @@ object ProteinUtil {
           if(s > leaderScore) {
             leaderPeptide = m._1
             leaderScore = s
-//            println("now leader is " + leaderPeptide)
           }
         } else if (w > parentMass) {
           leaderboard.remove(leaderboard indexOf (m))
-//          println("removing " + m._1)
         }
       }
 
