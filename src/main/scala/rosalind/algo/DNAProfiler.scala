@@ -112,6 +112,14 @@ object DNAProfiler {
     return List()
   }
 
+  def generate(k : Int, sequence : String) : List[String] = {
+    val possible = countKMers(k,sequence)
+    val kmers = for(kmer <- possible; if (kmer._2 > 0))
+      yield kmer._1
+
+    return kmers.toList
+  }
+
   def countKMers(k : Int, sequence : String) : mutable.Map[String,Int] = {
     val kMers = sequence.sliding(k)
     val count = new mutable.HashMap[String,Int]
@@ -155,6 +163,8 @@ object DNAProfiler {
   }
 
   def motifEnumeration(sequences : List[String], k : Int, numMutations : Int)  : List[String] = {
+    val big = sequences.mkString("")
+//    val kmers = { for (kmer <- generate(k); if (countWordWithMutations(sequences,kmer,0))) yield kmer }.toList
     val kmers = generate(k)
 
     val result = for (k1 <- kmers; k2 <- kmers; if ((!k1.equals(k2) && Hamming.calculate(k1,k2)<= numMutations) && countWordWithMutations(sequences,k2,numMutations)))
@@ -162,4 +172,33 @@ object DNAProfiler {
 
     return result.toList.distinct
   }
+
+  def medianString(sequences : List[String], k : Int) : String = {
+    val patterns = generate(k)
+    var bestPattern = patterns.sorted.head
+    for (pattern <- patterns) {
+      if( kmerHamming(pattern,sequences) <= kmerHamming(bestPattern,sequences)) {
+        bestPattern = pattern
+      }
+    }
+
+    return bestPattern
+  }
+
+  def kmerHamming(kmer:String, sequence:String) : Int =  {
+
+    val hammings = for(fragment <- sequence.sliding(kmer.size))
+      yield Hamming.calculate(fragment,kmer)
+
+    return hammings.min
+
+  }
+
+  def kmerHamming(kmer:String, sequences:List[String]) : Int =  {
+
+    val hammings = for(sequence <- sequences)
+    yield kmerHamming(kmer,sequence)
+    return hammings.sum
+  }
+
 }
