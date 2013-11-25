@@ -141,6 +141,25 @@ object DNAProfiler {
       case 3 => "T"
     }
     return s.mkString
+  }
 
+  def countWordWithMutations(sequences : List[String], word : String, numMutations : Int) : Boolean = {
+    val res = for (sequence <- sequences; frag <- sequence.sliding(word.size); if(Hamming.calculate(frag,word) <= numMutations))
+      yield (sequence,true)
+
+    var result = true
+    for (sequence <- sequences)
+      result = result && res.contains((sequence,true))
+
+    return result
+  }
+
+  def motifEnumeration(sequences : List[String], k : Int, numMutations : Int)  : List[String] = {
+    val kmers = generate(k)
+
+    val result = for (k1 <- kmers; k2 <- kmers; if ((!k1.equals(k2) && Hamming.calculate(k1,k2)<= numMutations) && countWordWithMutations(sequences,k2,numMutations)))
+                      yield k2
+
+    return result.toList.distinct
   }
 }
