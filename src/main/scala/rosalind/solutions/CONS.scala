@@ -22,7 +22,7 @@ object CONS extends App {
   val profile = DNAProfiler.profile(DNAProfiler.transposeStrings(sequences.toList))
 
 
-  println(DNAProfiler.consensus(profile))
+//  println(DNAProfiler.consensus(List(profile))
 
   var aC:String = ""
   var cC:String = ""
