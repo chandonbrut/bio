@@ -19,6 +19,9 @@ trait GraphReader {
         yield new Edge(new KMER("edge"),new KMER(flds(0)),new KMER(target))
       }.toList
     }
-    return new GenericGraph(nodes,edges)
+    for (e<-edges)
+      nodes append new Node(e.node2)
+
+    return new GenericGraph(nodes.distinct,edges.distinct)
   }
 }
