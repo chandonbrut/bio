@@ -13,3 +13,11 @@ case class Edge(val kmer : KMER, val node1 : KMER, val node2: KMER) {
       (this.node2 equals other.node2)
   }
 }
+
+case class Edge2(val kmer : (KMER,KMER), val node1 : (KMER,KMER), val node2: (KMER,KMER)) {
+  def equals(other : Edge2) : Boolean =  {
+    (this.kmer equals other.kmer) &&
+      (this.node1 equals other.node1) &&
+      (this.node2 equals other.node2)
+  }
+}

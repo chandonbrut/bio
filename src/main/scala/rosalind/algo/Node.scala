@@ -17,3 +17,16 @@ case class Node(val label : KMER) {
     edges remove edges.indexOf(e)
   }
 }
+
+case class Node2(val c : (KMER,KMER)) {
+  def equals(other: Node2) : Boolean = label equals other.label
+  val edges = new ListBuffer[Edge2]
+  def addEdge(e : Edge2) : Edge2 = {
+    edges append e
+    e
+  }
+  def delEdge(e : Edge2) : Edge2 = {
+    edges remove edges.indexOf(e)
+  }
+  val label = c._1.content + c._2.content
+}

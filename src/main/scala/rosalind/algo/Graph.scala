@@ -11,6 +11,26 @@ import scala.collection.mutable
  */
 object Graph {
 
+  def deBruijnAdj2(kmers : List[(KMER,KMER)]) : AdjGraph2 = {
+
+    val adj = new mutable.HashMap[Node2,ListBuffer[Edge2]]()
+
+    for (kmer <- kmers) {
+      val _n1 = new Node2((kmer._1.prefix(),kmer._2.prefix()))
+      val _n2 = new Node2((kmer._1.suffix(),kmer._2.suffix()))
+
+      adj.get(_n1).getOrElse(adj.put(_n1,new ListBuffer[Edge2]))
+      val _ln1 = adj.get(_n1).get
+      _ln1.append(new Edge2(kmer, (kmer._1.prefix(),kmer._2.prefix()), (kmer._1.suffix(),kmer._2.suffix())))
+
+      adj.get(_n2).getOrElse(adj.put(_n2,new ListBuffer[Edge2]))
+      val _ln2 = adj.get(_n2).get
+      _ln2.append(new Edge2(kmer, (kmer._1.prefix(),kmer._2.prefix()), (kmer._1.suffix(),kmer._2.suffix())))
+    }
+
+    return new AdjGraph2(adj)
+  }
+
   def deBruijnAdj(kmers : List[KMER]) : AdjGraph = {
 
     val adj = new mutable.HashMap[Node,ListBuffer[Edge]]()
@@ -224,16 +244,14 @@ case class GenericGraph(val nodes : ListBuffer[Node], val edges : ListBuffer[Edg
 
 }
 
-case class AdjGraph(val adj : mutable.HashMap[Node,ListBuffer[Edge]]) {
 
+case class AdjGraph(val adj : mutable.HashMap[Node,ListBuffer[Edge]]) {
   def nodes() : List[Node] = {
     adj.keySet.toList.sortBy(_.label.content)
   }
-
   def edges() : List[Edge] = {
     adj.values.flatten.toList
   }
-
   def eulerianCycle() : List[Node] = {
     var odd = List[Node]()
     for (node <- this.nodes) {
@@ -329,6 +347,126 @@ case class AdjGraph(val adj : mutable.HashMap[Node,ListBuffer[Edge]]) {
       way = way ::: List(current)
       val nextEdge = this.edgesFrom(current)(0)
       current = new Node(nextEdge.node2)
+      removeEdge(nextEdge)
+    } while(current != to)
+    if (!(from equals to)){
+      way = way ::: List(to)
+    }
+    return way.toList
+  }
+
+}
+
+
+
+case class AdjGraph2(val adj : mutable.HashMap[Node2,ListBuffer[Edge2]]) {
+  def nodes() : List[Node2] = {
+    adj.keySet.toList
+  }
+  def edges() : List[Edge2] = {
+    adj.values.flatten.toList
+  }
+  def eulerianCycle() : List[Node2] = {
+    var odd = List[Node2]()
+    for (node <- this.nodes) {
+      val grad = adj.get(node).get.size
+      if (grad == 0) {
+        throw new IllegalArgumentException("Illegal graph, isolated vertex.")
+      } else if(grad % 2 == 1) {
+        odd = odd ::: List(node)
+      }
+    }
+    println(odd.size+ " odds ")
+
+    if (odd.size > 2) {
+      throw new IllegalArgumentException("Illegal graph, more than 2 odd vertexes.")
+    }
+
+
+    var from : Node2 = nodes()(0)
+    var to : Node2 = from
+
+    if(odd.size == 2) {
+
+      if (edgesFrom(odd(0)).size > 0) {
+        from = odd(0)
+        to = odd(1)
+      } else {
+        from = odd(1)
+        to = odd(0)
+      }
+    }
+
+    if (odd.size == 1) {
+      from = odd(0)
+      to = odd(0)
+    }
+
+    var cycle = List[Node2]()
+
+    var insertPosition = 0
+
+    while (this.edges.size > 0) {
+
+      val way = findWay(from,to)
+      val firstPart= cycle.slice(0,insertPosition)
+      val  secondPart = cycle.slice(insertPosition,insertPosition+cycle.size)
+      cycle = firstPart ::: way ::: secondPart
+      Breaks.breakable {
+        for (v<-cycle) {
+          if(nodes.contains(v)) {
+            from = v
+            to = v
+            insertPosition = cycle.indexOf(v)
+            Breaks.break()
+          }
+        }
+      }
+    }
+
+    return cycle
+  }
+
+
+  def removeEdge(edge : Edge2) = {
+
+    val n1 = new Node2(edge.node1);
+    val n2 = new Node2(edge.node2);
+
+    val l1 = adj.get(n1).get
+    val l2 = adj.get(n2).get
+
+    l1.remove(l1.indexOf(edge))
+    l2.remove(l2.indexOf(edge))
+
+    if (l1.size == 0)
+      adj.remove(n1)
+
+    if (l2.size ==0)
+      adj.remove(n2)
+
+  }
+
+  def edges(node : Node2) : List[Edge2] = {
+    return adj.get(node).get.toList
+  }
+
+  def edgesFrom(node : Node2) : List[Edge2] = {
+    { for (edge <- this.edges(node); if (edge.node1 equals node.c)) yield edge }
+  }
+
+  def edgesTo(node : Node2) : List[Edge2] = {
+    { for (edge <- this.edges(node); if (edge.node2 equals node.c)) yield edge }
+  }
+
+
+  def findWay(from : Node2, to : Node2) : List[Node2] = {
+    var way = List[Node2]()
+    var current = from
+    do {
+      way = way ::: List(current)
+      val nextEdge = this.edgesFrom(current)(0)
+      current = new Node2(nextEdge.node2)
       removeEdge(nextEdge)
     } while(current != to)
     if (!(from equals to)){
