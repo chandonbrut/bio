@@ -474,5 +474,132 @@ case class AdjGraph2(val adj : mutable.HashMap[Node2,ListBuffer[Edge2]]) {
     }
     return way.toList
   }
+}
+
+case class CityGraph(val n : Int, val m : Int, val down : Array[Array[Int]], val right : Array[Array[Int]]) {
+
+  private val data = assembleMatrix()
+
+  def assembleMatrix() : Array[Array[Int]] = {
+    val d = Array.ofDim[Int](n+1,m+1)
+    d(0)(0) = 0
+
+    for (x <- List.range(1,n+1))
+      d(0).update(x,d(0)(x-1) + right(0)(x-1))
+
+    for (x <- List.range(1,n+1))
+      d(x).update(0,d(x-1)(0) + down(x-1)(0))
+
+    for (i <- List.range(1,n+1); j <- List.range(1,m+1)) {
+      val w : Int = math.max(
+        d(i-1)(j) + down(i-1)(j),
+        d(i)(j-1) + right(i)(j-1)
+      )
+      d(i)(j) = w
+    }
+
+    return d
+  }
+
+  def print() = {
+    for (d<-data)
+      println(d.mkString(" "))
+  }
+
+  def southOrEast(i : Int, j : Int) : Int = {
+    if (i == 0 && j == 0) {
+      return 0
+    }
+    var x = Int.MaxValue
+    var y = Int.MaxValue
+
+    if (i > 0) {
+      x = southOrEast(i-1,j) + data(i)(j)
+    }
+
+    if (j > 0) {
+      y = southOrEast(i,j-1) + data(i)(j)
+    }
+
+    return math.max(x,y)
+
+  }
+
+  def maxWeight() : Int = {
+    return data(n)(m)
+  }
+
+}
+
+case class AlignmentGraph(val v : String, val w : String) {
+  private val data = genData()._1
+  private val backtracking = genData()._2
+
+  def genData() : (Array[Array[Int]], Array[Array[String]])  = {
+    val n = v.size+1
+    val m = w.size+1
+
+    val d = Array.ofDim[Int](n,m)
+    val b = Array.ofDim[String](n,m)
+
+    for (x <- List.range(0,n)) {
+      d(x).update(0,0)
+      b(x).update(0,"nul")
+    }
+
+
+    for (x <- List.range(0,m)) {
+      d(0).update(x,0)
+      b(0).update(x,"nul")
+    }
+
+
+    for (i<-List.range(1,n); j<-List.range(1,m)) {
+
+        val matchOrMismatch = if (v.charAt(i-1) == w.charAt(j-1))
+                                d(i-1)(j-1) + 1
+                              else
+                                d(i-1)(j-1)
+
+        val values = List(
+          d(i-1)(j),
+          d(i)(j-1),
+          matchOrMismatch
+        )
+        d(i)(j) = values.max
+        if (d(i)(j) == d(i-1)(j)) {
+          b(i)(j) = "dow"
+        } else if (d(i)(j) == d(i)(j-1)) {
+          b(i)(j) = "rig"
+        } else if (d(i)(j) == (d(i-1)(j-1)+1)) {
+          b(i)(j) = "dia"
+        }
+      }
+
+    return (d,b)
+  }
+
+  def printData() = {
+    for (d<-data)
+      println(d.mkString(" "))
+  }
+
+  def printBacktrack() = {
+    for (d<-backtracking)
+      println(d.mkString(" "))
+  }
+
+  def outputLCS(i : Int, j : Int) : Unit = {
+    if ((i==0) || (j==0)) {
+
+    } else if(backtracking(i)(j) == "dow") {
+      outputLCS(i-1,j)
+    } else if (backtracking(i)(j) == "rig") {
+      outputLCS(i,j-1)
+    } else {
+      outputLCS(i-1,j-1)
+      print(v.charAt(i))
+    }
+  }
 
 }
