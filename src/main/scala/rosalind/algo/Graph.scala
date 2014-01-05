@@ -11,6 +11,21 @@ import scala.collection.mutable
  */
 object Graph {
 
+  def dag(str : String) : DAG = {
+
+    val data = str.split("\n")
+    val src = data.head.toInt
+    val snk = data.tail.head.toInt
+    val es ={  for (l <- data.tail.tail; mm = l.split("->"); targetAndWeight = mm(1).split(":") )
+    yield (mm(0).toInt,targetAndWeight(0).toInt,targetAndWeight(1).toInt)}.toSet
+
+    val ns:List[Int] = {
+      for (e<-es) yield e._1
+    }.toList ::: { for (e<-es) yield e._2 }.toList
+
+    return new DAG(src,snk,ns.toSet[Int],es)
+  }
+
   def deBruijnAdj2(kmers : List[(KMER,KMER)]) : AdjGraph2 = {
 
     val adj = new mutable.HashMap[Node2,ListBuffer[Edge2]]()
@@ -355,6 +370,54 @@ case class AdjGraph(val adj : mutable.HashMap[Node,ListBuffer[Edge]]) {
     return way.toList
   }
 
+  def findNonBranching() : List[List[Node]] = {
+
+    val contigs = new mutable.ListBuffer[List[Node]]()
+    val stack = new collection.mutable.Stack[(Node,Node)]()
+    val visited = new mutable.HashSet[Node]()
+    for (node <- this.nodes) {
+      val in = edgesTo(node)
+      val out = edgesFrom(node)
+
+      if (in.size < out.size) {
+
+        for (o <- out) {
+          stack.push((node,new Node(o.node2)))
+        }
+        visited add node
+      }
+    }
+
+    while (stack nonEmpty) {
+
+      val popped = stack pop
+
+      var contigPath = List(popped._1, popped._2)
+      var node = contigPath.last
+
+      while (( (edgesFrom(node).size == 1) &&
+        (edgesTo(node).size == 1) &&
+        (!visited.contains(node))  )) {
+        visited add node
+        node = new Node(edgesFrom(node)(0).node2)
+        contigPath = contigPath ::: List(node)
+      }
+      contigs append contigPath
+
+      if (!visited.contains(node)) {
+        for (o <- edgesFrom(node)) {
+          stack.push((node,new Node(o.node2)))
+        }
+        visited add node
+
+      }
+    }
+
+    return contigs.toList
+  }
+
+
+
 }
 
 
@@ -598,8 +661,398 @@ case class AlignmentGraph(val v : String, val w : String) {
       outputLCS(i,j-1)
     } else {
       outputLCS(i-1,j-1)
-      print(v.charAt(i))
+      print(v.charAt(i-1))
+    }
+  }
+}
+
+case class ScoredAlignmentGraph(val v : String, val w : String, val scores : List[(String,String,Int)], val indelPenalty : Int) {
+  private val data = genData()._1
+  private val backtracking = genData()._2
+
+  def genData() : (Array[Array[Int]], Array[Array[String]])  = {
+    val n = v.size+1
+    val m = w.size+1
+
+    val d = Array.ofDim[Int](n,m)
+    val b = Array.ofDim[String](n,m)
+
+    d(0).update(0,0)
+    b(0).update(0,"nul")
+
+
+    for (x <- List.range(1,n)) {
+      d(x).update(0,d(x-1)(0)-5)
+      b(x).update(0,"dow")
+    }
+
+
+    for (x <- List.range(1,m)) {
+      d(0).update(x,d(0)(x-1)-5)
+      b(0).update(x,"rig")
+    }
+
+    val s = new mutable.HashMap[String,Int]
+    for (sc <- scores)
+      s(sc._1 + sc._2) = sc._3
+
+    for (i<-List.range(1,n); j<-List.range(1,m)) {
+
+      val matchOrMismatch =  d(i-1)(j-1) + s(v.charAt(i-1)+""+w.charAt(j-1))
+
+      val values = List(
+        d(i-1)(j) - indelPenalty,
+        d(i)(j-1) - indelPenalty,
+        matchOrMismatch
+      )
+      d(i)(j) = values.max
+      if (d(i)(j) == d(i-1)(j) - indelPenalty) {
+        b(i)(j) = "dow"
+      } else if (d(i)(j) == d(i)(j-1) - indelPenalty) {
+        b(i)(j) = "rig"
+      } else if (d(i)(j) == matchOrMismatch) {
+        b(i)(j) = "dia"
+      }
+    }
+
+    return (d,b)
+  }
+
+  def printData() = {
+    for (d<-data)
+      println(d.mkString(" "))
+  }
+
+  def printBacktrack() = {
+    for (d<-backtracking)
+      println(d.mkString(" "))
+  }
+
+  def output(i : Int, j : Int, accV : List[String], accW : List[String]) : Unit = {
+    if ((i==0) && (j==0)) {
+      println(data(v.size)(w.size))
+      println(accV.mkString(""))
+      println(accW.mkString(""))
+    } else if(backtracking(i)(j) == "dow") {
+      val av = List(v.charAt(i-1).toString)  ::: accV
+      val aw = List("-")  ::: accW
+      output(i-1,j,av,aw)
+    } else if (backtracking(i)(j) == "rig") {
+      val av = List("-")  ::: accV
+      val aw = List(w.charAt(j-1).toString)  ::: accW
+      output(i,j-1,av,aw)
+    } else {
+      val av = List(v.charAt(i-1).toString)  ::: accV
+      val aw = List(w.charAt(j-1).toString)  ::: accW
+      output(i-1,j-1,av,aw)
+//      print(v.charAt(i-1))
+    }
+  }
+}
+
+case class FittingAlignmentGraph(val v : String, val w : String, val indelPenalty : Int, val matchReward : Int, val mismatchPenalty : Int) {
+  private val data = genData()._1
+  private val backtracking = genData()._2
+
+  def genData() : (Array[Array[Int]], Array[Array[String]])  = {
+    val n = v.size+1
+    val m = w.size+1
+
+    val d = Array.ofDim[Int](n,m)
+    val b = Array.ofDim[String](n,m)
+
+    d(0).update(0,0)
+    b(0).update(0,"nul")
+
+
+    for (x <- List.range(1,n)) {
+      d(x).update(0,0)
+      b(x).update(0,"dow")
+    }
+
+
+    for (x <- List.range(1,m)) {
+      d(0).update(x,d(0)(x-1) - indelPenalty)
+      b(0).update(x,"rig")
+    }
+
+  for (i<-List.range(1,n); j<-List.range(1,m)) {
+
+      val s = if (v.charAt(i-1) == w.charAt(j-1)) {
+        matchReward
+      } else {
+        -mismatchPenalty
+      }
+      val matchOrMismatch =  d(i-1)(j-1) + s
+
+      val values = List(
+        matchOrMismatch,
+        d(i-1)(j) - indelPenalty,
+        d(i)(j-1) - indelPenalty
+      )
+      d(i)(j) = values.max
+      if (d(i)(j) == d(i-1)(j) - indelPenalty) {
+        b(i)(j) = "dow"
+      } else if (d(i)(j) == d(i)(j-1) - indelPenalty) {
+        b(i)(j) = "rig"
+      } else if (d(i)(j) == s) {
+        b(i)(j) = "dia"
+      }
+    }
+
+    return (d,b)
+  }
+
+  def printData() = {
+    for (d<-data)
+      println(d.mkString(" "))
+  }
+
+  def printBacktrack() = {
+    for (d<-backtracking)
+      println(d.mkString(" "))
+  }
+
+  def output(i : Int, j : Int, accV : List[String], accW : List[String]) : Unit = {
+    if ((i==0) || (j==0)) {
+      val maxNode = getEndNode()
+      println(data(maxNode._1)(maxNode._2))
+      println(accV.mkString(""))
+      println(accW.mkString(""))
+    } else if(backtracking(i)(j) == "dow") {
+      val av = List(v.charAt(i-1).toString)  ::: accV
+      val aw = List("-")  ::: accW
+      output(i-1,j,av,aw)
+    } else if (backtracking(i)(j) == "rig") {
+      val av = List("-")  ::: accV
+      val aw = List(w.charAt(j-1).toString)  ::: accW
+      output(i,j-1,av,aw)
+    } else {
+      val av = List(v.charAt(i-1).toString)  ::: accV
+      val aw = List(w.charAt(j-1).toString)  ::: accW
+      output(i-1,j-1,av,aw)
+      //      print(v.charAt(i-1))
     }
   }
 
+  def getEndNode() : (Int,Int) = {
+    var maxI = v.size
+    var maxJ = w.size
+    var maxVal = Int.MinValue
+
+    for (i<-List.range(1,v.size+1))
+      if (data(i)(w.size) > maxVal) {
+        maxVal = data(i)(w.size)
+        maxI = i
+        maxJ = w.size
+      }
+
+
+    for (i<-List.range(1,v.size+1); j<-List.range(1,w.size); if (data(i)(j) == maxVal))
+      println("Max val reached")
+
+    return (maxI,maxJ)
+
+  }
+}
+
+case class ScoredLocalAlignmentGraph(val v : String, val w : String, val scores : List[(String,String,Int)], val indelPenalty : Int) {
+  private val data = genData()._1
+  private val backtracking = genData()._2
+
+  def genData() : (Array[Array[Int]], Array[Array[String]])  = {
+    val n = v.size+1
+    val m = w.size+1
+
+    val d = Array.ofDim[Int](n,m)
+    val b = Array.ofDim[String](n,m)
+
+    d(0).update(0,0)
+    b(0).update(0,"nul")
+
+
+    for (x <- List.range(1,n)) {
+      d(x).update(0,0)
+      b(x).update(0,"dow")
+    }
+
+
+    for (x <- List.range(1,m)) {
+      d(0).update(x,0)
+      b(0).update(x,"rig")
+    }
+
+    val s = new mutable.HashMap[String,Int]
+    for (sc <- scores)
+      s(sc._1 + sc._2) = sc._3
+
+    for (i<-List.range(1,n); j<-List.range(1,m)) {
+
+      val matchOrMismatch =  d(i-1)(j-1) + s(v.charAt(i-1)+""+w.charAt(j-1))
+
+      val values = List(
+        matchOrMismatch,
+        d(i-1)(j) - indelPenalty,
+        d(i)(j-1) - indelPenalty,
+        0
+      )
+      d(i)(j) = values.max
+      if (d(i)(j) == d(i-1)(j) - indelPenalty) {
+        b(i)(j) = "dow"
+      } else if (d(i)(j) == d(i)(j-1) - indelPenalty) {
+        b(i)(j) = "rig"
+      } else if (d(i)(j) == 0) {
+        b(i)(j) = "tax"
+      } else if (d(i)(j) == matchOrMismatch) {
+        b(i)(j) = "dia"
+      }
+    }
+
+    return (d,b)
+  }
+
+  def printData() = {
+    for (d<-data)
+      println(d.mkString(" "))
+  }
+
+  def printBacktrack() = {
+    for (d<-backtracking)
+      println(d.mkString(" "))
+  }
+
+  def output(i : Int, j : Int, accV : List[String], accW : List[String]) : Unit = {
+    if ((i==0) && (j==0)) {
+      val maxNode = getMaxNode()
+      println(data(maxNode._1)(maxNode._2))
+      println(accV.mkString(""))
+      println(accW.mkString(""))
+    } else if(backtracking(i)(j) == "dow") {
+      val av = List(v.charAt(i-1).toString)  ::: accV
+      val aw = List("-")  ::: accW
+      output(i-1,j,av,aw)
+    } else if (backtracking(i)(j) == "rig") {
+      val av = List("-")  ::: accV
+      val aw = List(w.charAt(j-1).toString)  ::: accW
+      output(i,j-1,av,aw)
+    } else if (backtracking(i)(j) == "tax") {
+      output(0,0,accV,accW)
+    } else {
+      val av = List(v.charAt(i-1).toString)  ::: accV
+      val aw = List(w.charAt(j-1).toString)  ::: accW
+      output(i-1,j-1,av,aw)
+      //      print(v.charAt(i-1))
+    }
+  }
+
+  def getMaxNode() : (Int,Int) = {
+    var maxI = v.size
+    var maxJ = w.size
+    var maxVal = data(maxI)(maxJ)
+
+    for (i<-List.range(1,v.size+1); j<-List.range(1,w.size))
+      if (data(i)(j) >= maxVal) {
+        maxVal = data(i)(j)
+        maxI = i
+        maxJ = j
+      }
+
+
+    for (i<-List.range(1,v.size+1); j<-List.range(1,w.size); if (data(i)(j) == maxVal))
+      println("Max val reached")
+
+    return (maxI,maxJ)
+
+  }
+}
+case class DAG(val source : Int, val sink : Int, val nodes : Set[Int], val edges : Set[(Int,Int,Int)]) {
+
+  def topologicalOrdering() : List[Int] = {
+    var list = new ListBuffer[Int]()
+    var candidates = new ListBuffer[Int]
+
+    var removableEdges = new ListBuffer[(Int,Int,Int)]
+    removableEdges appendAll edges
+
+    val incoming = for (e<-edges) yield e._2
+
+    for (n<-nodes; if (!incoming.contains(n)))
+      candidates append n
+
+    while (!candidates.isEmpty) {
+      val c = candidates.remove(0)
+      list append c
+      for (e<-removableEdges; if (e._1 == c)) {
+        val removed = removableEdges.remove(removableEdges.indexOf(e))
+        val incomingA = for (ie<-removableEdges; if(ie._2 == removed._2)) yield ie
+        if (incomingA.size == 0) {
+          candidates append removed._2
+        }
+      }
+    }
+
+    return list.toList
+
+  }
+
+  def longestPath() : Unit  = {
+
+
+    val d = new mutable.HashMap[Int,Int]()
+    val b = new mutable.HashMap[Int,Int]()
+
+
+
+    for (x <- nodes)
+      d(x) = 0
+
+
+    val order = this.topologicalOrdering()
+
+    println("order:" + order.mkString(" "))
+    var path = new ListBuffer[Int]
+    val beg = order.indexOf(source)
+    val end = order.indexOf(sink)
+
+    val validNodes = order.slice(beg,end+1)
+    val validEdges = for (e<-edges; if(validNodes.contains(e._1) && (validNodes.contains(e._2)))) yield e
+
+    for (a<-validNodes) {
+      if(a != source) {
+        println("on node " + a)
+        val nodesLeadingToNode = validEdges.filter(_._2 == a)
+        val ws = for (e<-nodesLeadingToNode) yield (e._1,d(e._1) + e._3)
+        if (ws.size > 0) {
+          d(a) = ws.maxBy(_._2)._2
+          b(a) = ws.maxBy(_._2)._1
+        } else {
+          d(a) = Int.MinValue
+        }
+      } else {
+        d(a) = 0
+      }
+    }
+
+    var toGo = new mutable.Stack[Int]()
+
+    toGo.push(sink)
+    while (!toGo.isEmpty) {
+      val n = toGo.pop()
+      path append n
+
+      if (n != source) {
+        try {
+          toGo.push(b(n))
+        } catch {
+          case _ => println("Erro em " +n)
+        }
+      }
+    }
+
+  println(d)
+    println("---")
+
+    println (d(sink))
+    println (path.toList.reverse.mkString("->"))
+  }
 }

@@ -34,23 +34,23 @@ object  W5L5_CONTIG_GENERATION extends JComponent with App {
 
   val deBruijn = Graph.deBruijnAdj(kmers)
 
-//  val commons = deBruijn.findNonBranching()
-//
-//  for (c<-commons)
-//    println(c mkString " ")
-//
-//
-//  val result = new collection.mutable.ListBuffer[String]
-//
-//  for (path <- commons) {
-//    var resulting = path.head.label
-//    for (l <- path.tail) {
-//      resulting = resulting append l.label
-//    }
-//    result append resulting.content
-//  }
-//
-//  println(result.toList.sorted.mkString(" "))
+  val commons = deBruijn.findNonBranching()
+
+  for (c<-commons)
+    println(c mkString " ")
+
+
+  val result = new collection.mutable.ListBuffer[String]
+
+  for (path <- commons) {
+    var resulting = path.head.label
+    for (l <- path.tail) {
+      resulting = resulting append l.label
+    }
+    result append resulting.content
+  }
+
+  println(result.toList.sorted.mkString(" "))
 
 
 
